@@ -1,17 +1,23 @@
 
 /*
 	RoboCore XBee API Library
-		(v1.0 - 18/02/2013)
+		(v1.1 - 26/02/2013)
 
   Library to use the XBEE in API mode
+    (tested only in Arduino 1.0.1)
 
   Released under the Beerware licence
+  
+  
+  NOTE: uses the Pointer List in XBeeMaster::Listen()
+        (but can be changed by undefining
+        USE_POINTER_LIST in <Memory.h>)
 */
 
 
 //*****************************************************************************************************************************
 //*****************************************************************************************************************************
-// during testing with the Sparkfun XBee Shield, use pins (2,3) for comunication
+// during testing with the Sparkfun XBee Shield, use pins (2,3) for comunication //or (6,7) if also using Ethernet shield
 // during testing with the RoboCore XBee Master Shield, use pins (8,9)
 //*****************************************************************************************************************************
 //*****************************************************************************************************************************
@@ -638,12 +644,17 @@ boolean XBeeMaster::Listen(char** str, boolean free_str){
 
   if(!_initialized)
     return false;
-  
+
   // has to free the string, otherwise will consume memory
   // verify that: because Listen() uses ByteArrayToHexString(), which uses malloc(), the block/string
   //                      must be manually freed.
-  if(free_str)
+  if(free_str){
+#ifdef USE_POINTER_LIST
+    Mfree(*str);
+#else
     free(*str);
+#endif
+  }
   
 #define BUFFER_SIZE 150
   byte buffer[BUFFER_SIZE];

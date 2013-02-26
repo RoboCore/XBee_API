@@ -1,16 +1,21 @@
 
 
 #include <SoftwareSerial.h>
+#include <Memory.h>
 #include <String_Functions.h>
 #include <Hex_Strings.h>
 #include "XBee_API.h"
 
 //-------------------------------------------------------------------------------------------------
+extern int __heap_start;
+
+
 
 #define BUFFER_SIZE 100
 byte buffer[BUFFER_SIZE];
 
-XBeeMaster xbee(2,3);
+//XBeeMaster xbee(2,3);
+XBeeMaster xbee(6,7); //TESTE - while using Ethernet and XBee shield
 ByteArray barray;
 
 void setup(){
@@ -25,6 +30,16 @@ void setup(){
 
   Serial.print("\tAddress: ");
   Serial.println((int)&xbee, HEX);
+  Serial.print("\theap start: ");
+  Serial.println((int)&__heap_start, HEX);
+  
+  
+  Serial.print("\t<Memory> ");
+  if(UsingPointerList())
+    Serial.println("OK");
+  else
+    Serial.println("no");
+  Serial.println();
 }
 
 
@@ -86,9 +101,8 @@ void loop(){
   if(Serial.available()){
     c = Serial.read();
     
-    AvailableMemory(&Serial);
-    Serial.print("chunks: ");
-    Serial.println(freeListSize());
+//    AvailableMemory(&Serial, true);
+    
     
     if(c == 'o'){ // acende
       Serial.println("Messages...");
@@ -127,6 +141,7 @@ void loop(){
       
       xbee.Listen(&str, true);
 //      b = XBeeMessages::ResponseOK(API_REMOTE_AT_COMMAND_REQUEST, str);
+      HexStringToByteArray(str, &barray);
       b = XBeeMessages::ResponseOK(API_REMOTE_AT_COMMAND_REQUEST, &barray);
       if(b !=  true)
         Serial.println("ERROR");

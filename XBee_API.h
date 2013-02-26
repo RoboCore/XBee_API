@@ -3,19 +3,30 @@
 
 /*
 	RoboCore XBee API Library
-		(v1.0 - 18/02/2013)
+		(v1.1 - 26/02/2013)
 
   Library to use the XBEE in API mode
+    (tested only in Arduino 1.0.1)
 
   Released under the Beerware licence
+  
+  
+  NOTE: uses the Pointer List in XBeeMaster::Listen()
+        (but can be changed by undefining
+        USE_POINTER_LIST in <Memory.h>)
 */
 
-#include <Arduino.h> //for Arduino 1.0 and later
+#if defined(ARDUINO) && (ARDUINO >= 100)
+#include <Arduino.h> //for Arduino 1.0 or later
+#else
+#include <WProgram.h> //for Arduino 22
+#endif
+
 #include <SoftwareSerial.h>
+#include <Memory.h>
 #include <String_Functions.h>
 #include <Hex_Strings.h> //to manipulate the messages
 #include "XBee_API_ATCommands.h" //the AT commands
-
 
 //--------------------------------------
 
