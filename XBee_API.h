@@ -6,7 +6,7 @@
 		(v1.1 - 26/02/2013)
 
   Library to use the XBEE in API mode
-    (tested only in Arduino 1.0.1)
+    (for Arduino 1.0.1 and later)
 
   Released under the Beerware licence
   
@@ -14,13 +14,13 @@
   NOTE: uses the Pointer List in XBeeMaster::Listen()
         (but can be changed by undefining
         USE_POINTER_LIST in <Memory.h>)
+  
+  NOTE: not compatible with previous versions of
+        Arduino because of the SoftwareSerial library
 */
 
-#if defined(ARDUINO) && (ARDUINO >= 100)
-#include <Arduino.h> //for Arduino 1.0 or later
-#else
-#include <WProgram.h> //for Arduino 22
-#endif
+#if defined(ARDUINO) && (ARDUINO >= 100) //for Arduino 1.0 or later
+#include <Arduino.h>
 
 #include <SoftwareSerial.h>
 #include <Memory.h>
@@ -101,5 +101,7 @@ class XBeeMessages{
 
 };
 
+
+#endif //Arduino 1.0 or later
 
 #endif
