@@ -15,7 +15,7 @@ extern int __heap_start;
 byte buffer[BUFFER_SIZE];
 
 //XBeeMaster xbee(2,3);
-XBeeMaster xbee(6,7); //TESTE - while using Ethernet and XBee shield
+XBeeMaster xbee; //TESTE - while using Ethernet and XBee shield
 ByteArray barray;
 
 void setup(){
@@ -101,13 +101,13 @@ void loop(){
   if(Serial.available()){
     c = Serial.read();
     
-//    AvailableMemory(&Serial, true);
+    AvailableMemory(&Serial, true);
     
     
     if(c == 'o'){ // acende
       Serial.println("Messages...");
       b = XBeeMessages::CreateRemoteATRequest(&barray, "0013A20040791ABB","0000",USE_64_BIT_ADDRESS, D4, "05");
-//      DisplayByteArray(Serial, &barray, true);
+//      DisplayByteArray(&Serial, &barray, true);
       xbee.CreateFrame(&barray);
 //      DisplayByteArray(Serial, &xbee._barray, true);
       
@@ -130,7 +130,7 @@ void loop(){
     } else if(c == 'f'){ // apaga
       Serial.println("Messages...");
       b = XBeeMessages::CreateRemoteATRequest(&barray, "0013A20040791ABB","0000",USE_64_BIT_ADDRESS, D4, "04");
-//      DisplayByteArray(Serial, &barray, true);
+//      DisplayByteArray(&Serial, &barray, true);
       xbee.CreateFrame(&barray);
 //      DisplayByteArray(Serial, &xbee._barray, true);
       
@@ -149,9 +149,14 @@ void loop(){
         Serial.println("OK");
       Serial.println("--- end ---");
       FreeByteArray(&barray);
+    } else if(c == 'm'){ //configura como mestre
+      Serial.println(xbee.ConfigureAsMaster(19200));
+    } else if(c == 's'){ //configura como escravo
+      Serial.println(xbee.ConfigureAsSlave(19200));
+    } else if(c == 'p'){ //print PointerList
+      PointerList::DisplayList(&Serial);
     }
   }
-  
   
 }
 

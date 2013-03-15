@@ -6,6 +6,8 @@ ConfigureAsMaster	KEYWORD2
 ConfigureAsSlave	KEYWORD2
 CreateFrame	KEYWORD2
 Destroy	KEYWORD2
+GetPCbaudrate	KEYWORD2
+GetXBeebaudrate	KEYWORD2
 GetSerialNumber	KEYWORD2
 Initialize	KEYWORD2
 Listen	KEYWORD2

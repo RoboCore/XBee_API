@@ -1,10 +1,10 @@
 
 /*
 	RoboCore XBee API Library
-		(v1.1 - 26/02/2013)
+		(v1.2 - 15/03/2013)
 
   Library to use the XBEE in API mode
-    (for Arduino 1.0.1 and later)
+    (tested with Arduino 0022, 0023 and 1.0.1)
 
   Released under the Beerware licence
   
@@ -13,15 +13,26 @@
         (but can be changed by undefining
         USE_POINTER_LIST in <Memory.h>)
   
-  NOTE: not compatible with previous versions of
-        Arduino because of the SoftwareSerial library
+  NOTE: for Arduino Uno or Duamilanove, use v_1.1 because
+        of SoftwareSerial library. For Mega & shield
+        from RoboCore, use v_1.2 (with a regular shield
+        use v_1.1)
+        # v_1.1 not compatible with previous versions of
+        Arduino (only 1.0.1 and later) because of the
+        SoftwareSerial library
+
+  NOTE: the API operation of the master isn't set to
+	use escape characters, because at this moment
+	none of the escape characters will be sent to
+	the slave (messagens include addresses and
+	set/unset IO, so uses just numbers and letters)
 */
 
 
 //*****************************************************************************************************************************
 //*****************************************************************************************************************************
 // during testing with the Sparkfun XBee Shield, use pins (2,3) for comunication //or (6,7) if also using Ethernet shield
-// during testing with the RoboCore XBee Master Shield, use pins (8,9)
+// during testing with the RoboCore XBee Master Shield, use pins Serial1 (19,18)
 //*****************************************************************************************************************************
 //*****************************************************************************************************************************
 
@@ -48,17 +59,16 @@
 //-------------------------------------------------------------------------------------------------
 
 // Constructor
-XBeeMaster::XBeeMaster(byte pinRx, byte pinTx):_xbee(pinRx, pinTx){
+XBeeMaster::XBeeMaster(void){
   _initialized = false; //set to false to call Initialize method
   _use_computer = false;
-  _xbeePins[0] = pinRx;
-  _xbeePins[1] = pinTx;
+  _xbee = &Serial1;
 }
 
 //-------------------------------------------------------------------------------------------------
 
 // Destructor
-XBeeMaster::~XBeeMaster(){
+XBeeMaster::~XBeeMaster(void){
   Destroy();
 }
 
@@ -136,8 +146,8 @@ byte XBeeMaster::ConfigureXBee(long baudrate, boolean master){
   //        OBS: address is stored in ByteArray, must read it BEFORE calling other function (might change data in the Byte Array)
   //    8) exit command mode
   
-  _xbee.end(); //end previous connection
-  _xbee.begin(baudrate); //begin connection
+  _xbee->end(); //end previous connection
+  _xbee->begin(baudrate); //begin connection
   
 #define BUFFER_SIZE 15
   char c[BUFFER_SIZE]; //add more than 3 to be sure
@@ -155,15 +165,15 @@ resend_EnterAT:
   //reset buffer
   for(int i=0 ; i < BUFFER_SIZE ; i++)
     c[i] = EMPTY_CHAR;
-  _xbee.write("+++");
+  _xbee->write("+++");
   tries++;
   //read response - 'OK\0'
   count = 0;
   start_time = millis(); //get the current time
   current_time = start_time;
   while((count < 3) && ((current_time - start_time) < AT_TIMEOUT)){
-    if(_xbee.available()){
-      c[count] = _xbee.read();
+    if(_xbee->available()){
+      c[count] = _xbee->read();
       count++;
     }
     current_time = millis();
@@ -192,20 +202,20 @@ resend_ID:
   //reset buffer
   for(int i=0 ; i < BUFFER_SIZE ; i++)
     c[i] = EMPTY_CHAR;
-  _xbee.write("ATID");
-  _xbee.write(ASCIIByteToHexByte((NETWORK_ID & 0xF000) >> 12));
-  _xbee.write(ASCIIByteToHexByte((NETWORK_ID & 0x0F00) >> 8));
-  _xbee.write(ASCIIByteToHexByte((NETWORK_ID & 0x00F0) >> 4));
-  _xbee.write(ASCIIByteToHexByte(NETWORK_ID & 0x000F));
-  _xbee.write(0x0D); //carriage return
+  _xbee->write("ATID");
+  _xbee->write(ASCIIByteToHexByte((NETWORK_ID & 0xF000) >> 12));
+  _xbee->write(ASCIIByteToHexByte((NETWORK_ID & 0x0F00) >> 8));
+  _xbee->write(ASCIIByteToHexByte((NETWORK_ID & 0x00F0) >> 4));
+  _xbee->write(ASCIIByteToHexByte(NETWORK_ID & 0x000F));
+  _xbee->write(0x0D); //carriage return
   tries++; //add
   //read response - 'OK\0'
   count = 0;
   start_time = millis(); //get the current time
   current_time = start_time;
   while((count < 3) && ((current_time - start_time) < AT_TIMEOUT)){
-    if(_xbee.available()){
-      c[count] = _xbee.read();
+    if(_xbee->available()){
+      c[count] = _xbee->read();
       count++;
     }
     current_time = millis();
@@ -234,18 +244,18 @@ resend_CH:
   //reset buffer
   for(int i=0 ; i < BUFFER_SIZE ; i++)
     c[i] = EMPTY_CHAR;
-  _xbee.write("ATCH");
-  _xbee.write(ASCIIByteToHexByte((NETWORK_CHANNEL & 0x00F0) >> 4));
-  _xbee.write(ASCIIByteToHexByte(NETWORK_CHANNEL & 0x000F));
-  _xbee.write(0x0D); //carriage return
+  _xbee->write("ATCH");
+  _xbee->write(ASCIIByteToHexByte((NETWORK_CHANNEL & 0x00F0) >> 4));
+  _xbee->write(ASCIIByteToHexByte(NETWORK_CHANNEL & 0x000F));
+  _xbee->write(0x0D); //carriage return
   tries++; //add
   //read response - 'OK\0'
   count = 0;
   start_time = millis(); //get the current time
   current_time = start_time;
   while((count < 3) && ((current_time - start_time) < AT_TIMEOUT)){
-    if(_xbee.available()){
-      c[count] = _xbee.read();
+    if(_xbee->available()){
+      c[count] = _xbee->read();
       count++;
     }
     current_time = millis();
@@ -290,17 +300,17 @@ resend_BD:
   //reset buffer
   for(int i=0 ; i < BUFFER_SIZE ; i++)
     c[i] = EMPTY_CHAR;
-  _xbee.write("ATBD");
-  _xbee.write(ASCIIByteToHexByte(bd));
-  _xbee.write(0x0D); //carriage return
+  _xbee->write("ATBD");
+  _xbee->write(ASCIIByteToHexByte(bd));
+  _xbee->write(0x0D); //carriage return
   tries++; //add
   //read response - 'OK\0'
   count = 0;
   start_time = millis(); //get the current time
   current_time = start_time;
   while((count < 3) && ((current_time - start_time) < AT_TIMEOUT)){
-    if(_xbee.available()){
-      c[count] = _xbee.read();
+    if(_xbee->available()){
+      c[count] = _xbee->read();
       count++;
     }
     current_time = millis();
@@ -330,18 +340,18 @@ resend_AP:
   for(int i=0 ; i < BUFFER_SIZE ; i++)
     c[i] = EMPTY_CHAR;
   if(master)
-    _xbee.write("ATAP1"); //mode 1 or 2 ??? *********************************************************************************
+    _xbee->write("ATAP1"); //mode 1 (mode 2 not yet implemented in XBeeMessages - see README)
   else
-    _xbee.write("ATAP0");
-  _xbee.write(0x0D); //carriage return
+    _xbee->write("ATAP0");
+  _xbee->write(0x0D); //carriage return
   tries++; //add
   //read response - 'OK\0'
   count = 0;
   start_time = millis(); //get the current time
   current_time = start_time;
   while((count < 3) && ((current_time - start_time) < AT_TIMEOUT)){
-    if(_xbee.available()){
-      c[count] = _xbee.read();
+    if(_xbee->available()){
+      c[count] = _xbee->read();
       count++;
     }
     current_time = millis();
@@ -369,16 +379,16 @@ resend_WR:
   //reset buffer
   for(int i=0 ; i < BUFFER_SIZE ; i++)
     c[i] = EMPTY_CHAR;
-  _xbee.write("ATWR");
-  _xbee.write(0x0D); //carriage return
+  _xbee->write("ATWR");
+  _xbee->write(0x0D); //carriage return
   tries++; //add
   //read response - 'OK\0'
   count = 0;
   start_time = millis(); //get the current time
   current_time = start_time;
   while((count < 3) && ((current_time - start_time) < AT_TIMEOUT)){
-    if(_xbee.available()){
-      c[count] = _xbee.read();
+    if(_xbee->available()){
+      c[count] = _xbee->read();
       count++;
     }
     current_time = millis();
@@ -406,16 +416,16 @@ resend_SH:
   //reset buffer
   for(int i=0 ; i < BUFFER_SIZE ; i++)
     c[i] = EMPTY_CHAR;
-  _xbee.write("ATSH");
-  _xbee.write(0x0D); //carriage return
+  _xbee->write("ATSH");
+  _xbee->write(0x0D); //carriage return
   tries++; //add
   //read response - 'OK\0'
   count = 0;
   start_time = millis(); //get the current time
   current_time = start_time;
   while((count < 9) && ((current_time - start_time) < AT_TIMEOUT)){
-    if(_xbee.available()){
-      c[count] = _xbee.read();
+    if(_xbee->available()){
+      c[count] = _xbee->read();
       count++; //careful for next commands!
     }
     current_time = millis();
@@ -453,16 +463,16 @@ resend_SL:
   //reset buffer
   for(int i=0 ; i < BUFFER_SIZE ; i++)
     c[i] = EMPTY_CHAR;
-  _xbee.write("ATSL");
-  _xbee.write(0x0D); //carriage return
+  _xbee->write("ATSL");
+  _xbee->write(0x0D); //carriage return
   tries++; //add
   //read response - 'OK\0'
   count = 0;
   start_time = millis(); //get the current time
   current_time = start_time;
   while((count < 9) && ((current_time - start_time) < AT_TIMEOUT)){
-    if(_xbee.available()){
-      c[count] = _xbee.read();
+    if(_xbee->available()){
+      c[count] = _xbee->read();
       count++; //careful for next commands!
     }
     current_time = millis();
@@ -487,14 +497,14 @@ resend_SL:
   else { //store in serial_number LSB (see offset of 8)
     byte leading_zeros = 9 - count;
     for(int i=0 ; i < leading_zeros ; i++)
-      serial_number[8 + i] = 0;
+      serial_number[8 + i] = '0';
     for(int i=leading_zeros ; i < 8 ; i++)
       serial_number[8 + i] = c[i - leading_zeros];
   }
   //-----------------------------------
   // 8) EXIT COMMAND MODE
-  _xbee.write("ATCN"); //leave command mode - doesn't need to verify 'ok' back, leaves with timeout
-  _xbee.write(0x0D); //carriage return
+  _xbee->write("ATCN"); //leave command mode - doesn't need to verify 'ok' back, leaves with timeout
+  _xbee->write(0x0D); //carriage return
 #ifdef XBEE_API_DEBUG
   //display on computer
   if(_use_computer)
@@ -504,9 +514,9 @@ resend_SL:
   //-----------------------------------
   // return
   delay(10);
-  _xbee.flush();
-  _xbee.end();
-  _xbee.begin(BAUDRATE_XBEE); //start new connection
+  _xbee->flush();
+  _xbee->end();
+  _xbee->begin(BAUDRATE_XBEE); //start new connection
   
   //store in ByteArray
   HexStringToByteArray(serial_number, &_barray);
@@ -533,6 +543,10 @@ boolean XBeeMaster::CreateFrame(char* message, boolean is_hex){
   //calculate the check sum
   byte check_sum = CheckSum(&temp);
   
+  //free Byte Array if contains the Serial Number
+  if(_is_SerialNumber)
+    FreeByteArray(&_barray);
+  
   //store in own Byte Array
   ResizeByteArray(&_barray, 3);
   JoinByteArray(&_barray, &temp); //add to own byte array
@@ -558,6 +572,10 @@ boolean XBeeMaster::CreateFrame(ByteArray* message){
   //calculate the check sum
   byte check_sum = CheckSum(message);
   
+  //free Byte Array if contains the Serial Number
+  if(_is_SerialNumber)
+    FreeByteArray(&_barray);
+  
   //store in own Byte Array
   ResizeByteArray(&_barray, 3);
   JoinByteArray(&_barray, message); //add to own byte array
@@ -576,26 +594,36 @@ boolean XBeeMaster::CreateFrame(ByteArray* message){
 //-------------------------------------------------------------------------------------------------
 
 // Destroy the XBeeMaster
-void XBeeMaster::Destroy(){
+void XBeeMaster::Destroy(void){
   if(!_initialized)
     return;
   
   _computer->end(); //end communication
-  _xbee.end(); //end communication
+  _xbee->end(); //end communication
   
   FreeByteArray(&_barray);
   _is_SerialNumber = false; //reset
   _use_computer = false;
-  _xbeePins[0] = -1;
-  _xbeePins[1] = -1;
   _computer = NULL;
   _initialized = false; //reset
 }
 
 //-------------------------------------------------------------------------------------------------
 
+// Get the defined PC baudrate
+long XBeeMaster::GetPCbaudrate(void){
+  return BAUDRATE_PC;
+}
+
+// Get the defined XBee baudrate
+long XBeeMaster::GetXBeebaudrate(void){
+  return BAUDRATE_XBEE;
+}
+
+//-------------------------------------------------------------------------------------------------
+
 // Get the serial number of the last configured XBee
-char* XBeeMaster::GetSerialNumber(){
+char* XBeeMaster::GetSerialNumber(void){
   if(!_initialized)
     return "";
   
@@ -613,9 +641,9 @@ char* XBeeMaster::GetSerialNumber(){
 //-------------------------------------------------------------------------------------------------
 
 // Initialize the XBeeMaster
-void XBeeMaster::Initialize(){
+void XBeeMaster::Initialize(void){
   if(!_initialized){
-    _xbee.begin(BAUDRATE_XBEE); //begin transmission
+    _xbee->begin(BAUDRATE_XBEE); //begin transmission
     InitializeByteArray(&_barray); //initialize Byte Array
     _is_SerialNumber = false; //set
     _initialized = true; //set
@@ -626,12 +654,12 @@ void XBeeMaster::Initialize(){
 // Initialize the XBeeMaster
 void XBeeMaster::Initialize(HardwareSerial* computer){
   if(!_initialized){
-    if((_xbeePins[0] != 0) && (_xbeePins[1] != 1)){ //assign only if not used by XBee
+    if(computer != &Serial1){ //assign only if not used by XBee
       _computer = computer;
       _computer->begin(BAUDRATE_PC);
       _use_computer = true;
     }
-    _xbee.begin(BAUDRATE_XBEE); //begin transmission
+    _xbee->begin(BAUDRATE_XBEE); //begin transmission
     InitializeByteArray(&_barray); //initialize Byte Array
     _is_SerialNumber = false; //set
     _initialized = true; //set
@@ -666,7 +694,7 @@ boolean XBeeMaster::Listen(char** str, boolean free_str){
   unsigned long start_time, current_time;
   start_time = millis();
   current_time = start_time;
-  while(!_xbee.available() && ((current_time - start_time) < LISTEN_TIMEOUT)){
+  while(!_xbee->available() && ((current_time - start_time) < LISTEN_TIMEOUT)){
     delay(10);
     current_time = millis();
   }
@@ -675,8 +703,8 @@ boolean XBeeMaster::Listen(char** str, boolean free_str){
 
   //read from buffer
   int i = 0;
-  while(_xbee.available() && (i < BUFFER_SIZE)){
-    buffer[i] = (byte)_xbee.read();
+  while(_xbee->available() && (i < BUFFER_SIZE)){
+    buffer[i] = (byte)_xbee->read();
     i++;
     //begin storage if have found start of frame
     if((byte)buffer[0] != FRAME_DELIMITER)
@@ -704,7 +732,7 @@ boolean XBeeMaster::Listen(char** str, boolean free_str){
 //-------------------------------------------------------------------------------------------------
 
 // Send the message
-boolean XBeeMaster::Send(){
+boolean XBeeMaster::Send(void){
   if(!_initialized)
     return false;
   
@@ -712,9 +740,9 @@ boolean XBeeMaster::Send(){
     return false;
   
   //send data
-  _xbee.listen();
-  for(int i=0 ; i < _barray.length ; i++)
-    _xbee.write(_barray.ptr[i]);
+  for(int i=0 ; i < _barray.length ; i++){
+    _xbee->write(_barray.ptr[i]);
+  }
   delay(10);
   
   FreeByteArray(&_barray); //free memory
@@ -728,7 +756,7 @@ boolean XBeeMaster::Send(){
 boolean XBeeMaster::SetComputer(HardwareSerial* computer){
   boolean res = false;
   if(_initialized){
-    if((_xbeePins[0] != 0) && (_xbeePins[1] != 1)){ //assign only if not used by XBee
+    if(computer != &Serial1){ //assign only if not used by XBee
       _computer = computer;
       _computer->begin(BAUDRATE_PC);
       _use_computer = true;
@@ -741,7 +769,7 @@ boolean XBeeMaster::SetComputer(HardwareSerial* computer){
 //-------------------------------------------------------------------------------------------------
 
 // Unset the computer serial
-void XBeeMaster::UnsetComputer(){
+void XBeeMaster::UnsetComputer(void){
   if(!_initialized)
     return;
   
@@ -859,6 +887,7 @@ boolean XBeeMessages::ResponseOK(byte sent_message_type, char* response){
 #ifdef XBEE_API_DEBUG
       Serial.println("ERROR in ResponseOK: type not yet implemented!");
 #endif
+      break; //must have for when XBEE_API_DEBUG ISN'T defined
   }
   
   return res;
@@ -885,6 +914,7 @@ boolean XBeeMessages::ResponseOK(byte sent_message_type, ByteArray* barray){
 #ifdef XBEE_API_DEBUG
       Serial.println("ERROR in ResponseOK: type not yet implemented!");
 #endif
+      break; //must have for when XBEE_API_DEBUG ISN'T defined
   }
   
   return res;

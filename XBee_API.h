@@ -3,10 +3,10 @@
 
 /*
 	RoboCore XBee API Library
-		(v1.1 - 26/02/2013)
+		(v1.2 - 15/03/2013)
 
   Library to use the XBEE in API mode
-    (for Arduino 1.0.1 and later)
+    (tested with Arduino 0022, 0023 and 1.0.1)
 
   Released under the Beerware licence
   
@@ -15,14 +15,28 @@
         (but can be changed by undefining
         USE_POINTER_LIST in <Memory.h>)
   
-  NOTE: not compatible with previous versions of
-        Arduino because of the SoftwareSerial library
+  NOTE: for Arduino Uno or Duamilanove, use v_1.1 because
+        of SoftwareSerial library. For Mega & shield
+        from RoboCore, use v_1.2 (with a regular shield
+        use v_1.1)
+        # v_1.1 not compatible with previous versions of
+        Arduino (only 1.0.1 and later) because of the
+        SoftwareSerial library
 */
 
-#if defined(ARDUINO) && (ARDUINO >= 100) //for Arduino 1.0 or later
-#include <Arduino.h>
+#if defined(ARDUINO) && (ARDUINO >= 100)
+#include <Arduino.h> //for Arduino 1.0 or later
+#else
+#include <WProgram.h> //for Arduino 22
+#endif
 
-#include <SoftwareSerial.h>
+//verify board
+#if not (defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)) //Arduino Mega 1280 and Mega 2560
+#error For Arduino Duemilanove or Uno, change _xbee to v_1.1 (with SoftwareSerial)
+#endif
+
+
+#include <HardwareSerial.h>
 #include <Memory.h>
 #include <String_Functions.h>
 #include <Hex_Strings.h> //to manipulate the messages
@@ -61,30 +75,32 @@
 class XBeeMaster{
   
   public:
-    XBeeMaster(byte pinRx, byte pinTx);
-    ~XBeeMaster();
+    XBeeMaster(void);
+    ~XBeeMaster(void);
     boolean AssignByteArray(ByteArray* barray);
     byte ConfigureAsMaster(long baudrate);
     byte ConfigureAsSlave(long baudrate);
     boolean CreateFrame(char* message, boolean is_hex);
     boolean CreateFrame(ByteArray* message);
-    void Destroy();
-    char* GetSerialNumber();
-    void Initialize();
+    void Destroy(void);
+    char* GetSerialNumber(void);
+    void Initialize(void);
     void Initialize(HardwareSerial* computer);
     boolean Listen(char** str, boolean free_str);
-    boolean Send();
+    boolean Send(void);
     boolean SetComputer(HardwareSerial* computer);
-    void UnsetComputer();
+    void UnsetComputer(void);
+    
+static long GetPCbaudrate(void);
+static long GetXBeebaudrate(void);
     
   private:
     boolean _initialized;
     boolean _is_SerialNumber;
     boolean _use_computer;
     ByteArray _barray;
-    byte _xbeePins[2]; //{Rx, Tx}
     HardwareSerial* _computer; // (Rx, Tx) = (0,1) ~ 9600
-    SoftwareSerial _xbee; // (Rx, Tx) = (2,3) ~ 19200
+    HardwareSerial* _xbee; // (Rx, Tx) = (19,18) ~ 19200 (Serial 1 on MEGA)
     byte CheckSum(ByteArray* barray_ptr);
     byte ConfigureXBee(long baudrate, boolean master);
 };
@@ -101,7 +117,5 @@ class XBeeMessages{
 
 };
 
-
-#endif //Arduino 1.0 or later
 
 #endif
