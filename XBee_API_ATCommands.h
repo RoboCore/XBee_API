@@ -8,6 +8,8 @@
   Library to use the AT Commands of the XBEE in API mode
 
   Released under the Beerware licence
+  Written by François
+  
 */
 
 

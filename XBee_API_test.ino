@@ -106,7 +106,7 @@ void loop(){
     
     if(c == 'o'){ // acende
       Serial.println("Messages...");
-      b = XBeeMessages::CreateRemoteATRequest(&barray, "0013A20040791ABB","0000",USE_64_BIT_ADDRESS, D4, "05");
+      b = XBeeMessages::CreateRemoteATRequest(&barray, "0013A200409FAA21","0000",USE_64_BIT_ADDRESS, D1, "05"); // 0013A20040791ABB
 //      DisplayByteArray(&Serial, &barray, true);
       xbee.CreateFrame(&barray);
 //      DisplayByteArray(Serial, &xbee._barray, true);
@@ -129,7 +129,7 @@ void loop(){
       
     } else if(c == 'f'){ // apaga
       Serial.println("Messages...");
-      b = XBeeMessages::CreateRemoteATRequest(&barray, "0013A20040791ABB","0000",USE_64_BIT_ADDRESS, D4, "04");
+      b = XBeeMessages::CreateRemoteATRequest(&barray, "0013A200409FAA21","0000",USE_64_BIT_ADDRESS, D1, "04"); // 0013A20040791ABB
 //      DisplayByteArray(&Serial, &barray, true);
       xbee.CreateFrame(&barray);
 //      DisplayByteArray(Serial, &xbee._barray, true);

@@ -3,12 +3,13 @@
 
 /*
 	RoboCore XBee API Library
-		(v1.2 - 15/03/2013)
+		(v1.3 - 14/05/2013)
 
   Library to use the XBEE in API mode
     (tested with Arduino 0022, 0023 and 1.0.1)
 
   Released under the Beerware licence
+  Written by François
   
   
   NOTE: uses the Pointer List in XBeeMaster::Listen()
@@ -22,6 +23,16 @@
         # v_1.1 not compatible with previous versions of
         Arduino (only 1.0.1 and later) because of the
         SoftwareSerial library
+
+  NOTES for versions:
+	. Configure functions are general, they only change
+	  the network ID, Channel and Baudrate. The only
+	  difference is that Slaves are in AT mode whereas
+	  Masters are in API mode. This means that version,
+	  both for Slaves and Masters, do not apply to these
+	  functions.
+	. Version specific code must be implemented in the
+	  parent code.
 */
 
 #if defined(ARDUINO) && (ARDUINO >= 100)
@@ -34,7 +45,6 @@
 #if not (defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)) //Arduino Mega 1280 and Mega 2560
 #error For Arduino Duemilanove or Uno, change _xbee to v_1.1 (with SoftwareSerial)
 #endif
-
 
 #include <HardwareSerial.h>
 #include <Memory.h>
@@ -87,6 +97,8 @@ class XBeeMaster{
     void Initialize(void);
     void Initialize(HardwareSerial* computer);
     boolean Listen(char** str, boolean free_str);
+    byte Restore(void);
+    byte Restore(long baudrate);
     boolean Send(void);
     boolean SetComputer(HardwareSerial* computer);
     void UnsetComputer(void);

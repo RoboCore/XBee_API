@@ -11,6 +11,7 @@ GetXBeebaudrate	KEYWORD2
 GetSerialNumber	KEYWORD2
 Initialize	KEYWORD2
 Listen	KEYWORD2
+Restore	KEYWORD2
 Send	KEYWORD2
 SetComputer	KEYWORD2
 UnsetComputer	KEYWORD2
