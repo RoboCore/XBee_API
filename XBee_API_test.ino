@@ -14,8 +14,10 @@ extern int __heap_start;
 #define BUFFER_SIZE 100
 byte buffer[BUFFER_SIZE];
 
-//XBeeMaster xbee(2,3);
-XBeeMaster xbee; //TESTE - while using Ethernet and XBee shield
+
+//SoftwareSerial xbee_sf(2,3); //Rx/Tx
+//XBeeMaster xbee(&xbee_sf); //TESTE - while using Ethernet and XBee shield
+XBeeMaster xbee(&Serial1);
 ByteArray barray;
 
 void setup(){
@@ -116,7 +118,7 @@ void loop(){
       xbee.Send();
       Serial.println("Sent!");
       
-      xbee.Listen(&str, true);
+      Serial.println(xbee.Listen(&str, true));
 //      b = XBeeMessages::ResponseOK(API_REMOTE_AT_COMMAND_REQUEST, str);
       HexStringToByteArray(str, &barray);
       b = XBeeMessages::ResponseOK(API_REMOTE_AT_COMMAND_REQUEST, &barray);
@@ -139,7 +141,7 @@ void loop(){
       xbee.Send();
       Serial.println("Sent!");
       
-      xbee.Listen(&str, true);
+      Serial.println(xbee.Listen(&str, true));
 //      b = XBeeMessages::ResponseOK(API_REMOTE_AT_COMMAND_REQUEST, str);
       HexStringToByteArray(str, &barray);
       b = XBeeMessages::ResponseOK(API_REMOTE_AT_COMMAND_REQUEST, &barray);

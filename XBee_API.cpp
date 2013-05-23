@@ -1,7 +1,7 @@
 
 /*
 	RoboCore XBee API Library
-		(v1.3 - 14/05/2013)
+		(v1.3 - 23/05/2013)
 
   Library to use the XBEE in API mode
     (tested with Arduino 0022, 0023 and 1.0.1)
@@ -14,13 +14,9 @@
         (but can be changed by undefining
         USE_POINTER_LIST in <Memory.h>)
   
-  NOTE: for Arduino Uno or Duamilanove, use v_1.1 because
-        of SoftwareSerial library. For Mega & shield
-        from RoboCore, use v_1.2 (with a regular shield
-        use v_1.1)
-        # v_1.1 not compatible with previous versions of
-        Arduino (only 1.0.1 and later) because of the
-        SoftwareSerial library
+  NOTE: this library can work with the SoftwareSerial
+        library in Arduino versions 0022 and 0023, but
+        is disabled by default.
 
   NOTE: the API operation of the master isn't set to
 	use escape characters, because at this moment
@@ -69,12 +65,29 @@
 
 //-------------------------------------------------------------------------------------------------
 
-// Constructor
+// Constructor - default
+//   NOTE: NOT to be used, because does not set the XBee
 XBeeMaster::XBeeMaster(void){
   _initialized = false; //set to false to call Initialize method
   _use_computer = false;
-  _xbee = &Serial1;
+  _xbee = NULL; // BLOCKS the use of the object in Initialize()
 }
+
+#ifdef USE_SOFTWARE_SERIAL
+// Constructor for SoftwareSerial
+XBeeMaster::XBeeMaster(SoftwareSerial* xbee){
+  _initialized = false; //set to false to call Initialize method
+  _use_computer = false;
+  _xbee = xbee;
+}
+#else
+// Constructor for HardwareSerial
+XBeeMaster::XBeeMaster(HardwareSerial* xbee){
+  _initialized = false; //set to false to call Initialize method
+  _use_computer = false;
+  _xbee = xbee;
+}
+#endif
 
 //-------------------------------------------------------------------------------------------------
 
@@ -663,7 +676,7 @@ char* XBeeMaster::GetSerialNumber(void){
 
 // Initialize the XBeeMaster
 void XBeeMaster::Initialize(void){
-  if(!_initialized){
+  if(!_initialized && (_xbee != NULL)){ //must have a serial port assigned
     _xbee->begin(BAUDRATE_XBEE); //begin transmission
     InitializeByteArray(&_barray); //initialize Byte Array
     _is_SerialNumber = false; //set
@@ -674,8 +687,8 @@ void XBeeMaster::Initialize(void){
 
 // Initialize the XBeeMaster
 void XBeeMaster::Initialize(HardwareSerial* computer){
-  if(!_initialized){
-    if(computer != &Serial1){ //assign only if not used by XBee
+  if(!_initialized && (_xbee != NULL)){ //must have a serial port assigned
+    if((word)computer != (word)_xbee){ //assign only if not used by XBee (because both are pointers, cast to word to compare even for different types)
       _computer = computer;
       _computer->begin(BAUDRATE_PC);
       _use_computer = true;
@@ -690,12 +703,13 @@ void XBeeMaster::Initialize(HardwareSerial* computer){
 //-------------------------------------------------------------------------------------------------
 
 // Listen the response of the XBee Slave
+//   (returns -1 if not initialized, 1 on message listened, 10 on Timeout, 11 on buffer overflow)
 //     NOTE: if 'str' was created using malloc(), 'free_str' must be TRUE
-boolean XBeeMaster::Listen(char** str, boolean free_str){
+int XBeeMaster::Listen(char** str, boolean free_str){
   //NOTE: with char* the result isn't correctly stored, but with char** is
 
   if(!_initialized)
-    return false;
+    return -1;
 
   // has to free the string, otherwise will consume memory
   // verify that: because Listen() uses ByteArrayToHexString(), which uses malloc(), the block/string
@@ -707,6 +721,10 @@ boolean XBeeMaster::Listen(char** str, boolean free_str){
     free(*str);
 #endif
   }
+
+#ifdef USE_SOFTWARE_SERIAL
+  _xbee->listen();
+#endif
   
 #define BUFFER_SIZE 150
   byte buffer[BUFFER_SIZE];
@@ -720,7 +738,7 @@ boolean XBeeMaster::Listen(char** str, boolean free_str){
     current_time = millis();
   }
   if((current_time - start_time) >= LISTEN_TIMEOUT)
-    return false;
+    return 10;
 
   //read from buffer
   int i = 0;
@@ -735,7 +753,7 @@ boolean XBeeMaster::Listen(char** str, boolean free_str){
   //parse message
   unsigned int length = (buffer[1] << 8) | buffer[2]; //MSB and LSB
   if(length >= BUFFER_SIZE - 3) //message too long for buffer (100 - 3 bytes for Frame, Length_H and Length_L)
-    return false;
+    return 11;
   
   //use Byte Array because a NULL character (value of 0) returns an invalid string
   ByteArray temp;
@@ -942,7 +960,7 @@ boolean XBeeMaster::Send(void){
 boolean XBeeMaster::SetComputer(HardwareSerial* computer){
   boolean res = false;
   if(_initialized){
-    if(computer != &Serial1){ //assign only if not used by XBee
+    if((word)computer != (word)_xbee){ //assign only if not used by XBee (because both are pointers, cast to word to compare even for different types)
       _computer = computer;
       _computer->begin(BAUDRATE_PC);
       _use_computer = true;
