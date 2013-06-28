@@ -6,7 +6,7 @@
   Library to use the XBEE in API mode
     (tested with Arduino 0022, 0023 and 1.0.1)
 
-  Released under the Beerware licence
+  Released under the Beerware license
   Written by François
   
   

@@ -7,7 +7,7 @@
 
   Library to use the AT Commands of the XBEE in API mode
 
-  Released under the Beerware licence
+  Released under the Beerware license
   Written by François
   
 */
