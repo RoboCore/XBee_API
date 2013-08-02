@@ -3,12 +3,26 @@
 
 /*
 	RoboCore XBee API Library - AT Commands
-		(v1.0 - 15/02/2013)
+		(v1.0 - 30/07/2013)
 
   Library to use the AT Commands of the XBEE in API mode
 
-  Released under the Beerware license
-  Written by François
+  Copyright 2013 RoboCore (François) ( http://www.RoboCore.net )
+  
+  ------------------------------------------------------------------------------
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Lesser General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  ------------------------------------------------------------------------------
   
 */
 
@@ -99,6 +113,13 @@
 #define VR "VR" // Firmware Version
 #define WR "WR" // Write
 
+
+
+#define XBEE_PIN_DISABLED 0
+#define XBEE_PIN_ADC      2
+#define XBEE_PIN_DI       3
+#define XBEE_PIN_DO_LOW   4
+#define XBEE_PIN_DO_HIGH  5
 
 
 #endif

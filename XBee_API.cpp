@@ -1,13 +1,40 @@
+/*
+  ***************************************************************************************************************************************************************
+  ROBOCORE ONLY *************************************************************************************************************************************************
+
+  Versão RELEASE:
+  (procurar por RELEASE para identificar o que remover/alterar)
+    # alterar 
+       #define NETWORK_ID 0xA1BA  //0 to 0xFFFF
+       #define NETWORK_CHANNEL 0x13 //XBee: 0x0B to 0x1A || XBee PRO: 0x0C to 0x17
+  
+  ***************************************************************************************************************************************************************
+  ***************************************************************************************************************************************************************
+*/
 
 /*
 	RoboCore XBee API Library
-		(v1.3 - 23/05/2013)
+		(v1.3 - 31/07/2013)
 
   Library to use the XBEE in API mode
     (tested with Arduino 0022, 0023 and 1.0.1)
 
-  Released under the Beerware license
-  Written by François
+  Copyright 2013 RoboCore (François) ( http://www.RoboCore.net )
+  
+  ------------------------------------------------------------------------------
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Lesser General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  ------------------------------------------------------------------------------
   
   
   NOTE: uses the Pointer List in XBeeMaster::Listen()
@@ -56,7 +83,6 @@
 
 //other constants
 #define AT_TIMEOUT 11000
-#define LISTEN_TIMEOUT 1000
 
 #define EMPTY_CHAR '#'
 #define CONTROL_CHAR '#'
@@ -162,13 +188,14 @@ byte XBeeMaster::ConfigureXBee(long baudrate, boolean master){
   //    1) enter command mode
   //    2) set the network ID
   //    3) set the network Channel
-  //    4) set the Baudrate
-  //    5) set de API mode
-  //    6) write changes
-  //    7.1) read SH
-  //    7.2) read SL
+  //    4) set the 16-bit address (slave only)
+  //    5) set the Baudrate
+  //    6) set de API mode
+  //    7) write changes
+  //    8.1) read SH
+  //    8.2) read SL
   //        OBS: address is stored in ByteArray, must read it BEFORE calling other function (might change data in the Byte Array)
-  //    8) exit command mode
+  //    9) exit command mode
   
   _xbee->end(); //end previous connection
   _xbee->begin(baudrate); //begin connection
@@ -299,7 +326,48 @@ resend_CH:
   if((c[0] != 0x4F) || (c[1] != 0x4B) || (c[2] != 0x0D)) //not 'OK' resend
     goto resend_CH;
   //-----------------------------------
-  // 4) SET NETWORK BAUDRATE
+  // 4) SET 16-bit ADDRESS
+  if(!master){
+    tries = 0;
+resend_MY:
+    //check number of tries
+    if(tries > 3)
+      return 23;
+    //reset buffer
+    for(int i=0 ; i < BUFFER_SIZE ; i++)
+      c[i] = EMPTY_CHAR;
+    _xbee->write("ATMY");
+    _xbee->write("FFFF"); // 0xFFFF
+    _xbee->write(0x0D); //carriage return
+    tries++; //add
+    //read response - 'OK\0'
+    count = 0;
+    start_time = millis(); //get the current time
+    current_time = start_time;
+    while((count < 3) && ((current_time - start_time) < AT_TIMEOUT)){
+      if(_xbee->available()){
+        c[count] = _xbee->read();
+        count++;
+      }
+      current_time = millis();
+    }
+    //check if timeout
+    if((current_time - start_time) >= AT_TIMEOUT)
+      return 14;
+#ifdef XBEE_API_DEBUG
+    //display on computer
+    if(_use_computer){
+      _computer->println(">> ATMY");
+      for(int i=0 ; i < BUFFER_SIZE ; i++)
+        _computer->print(c[i]);
+      _computer->println();
+    }
+#endif
+    if((c[0] != 0x4F) || (c[1] != 0x4B) || (c[2] != 0x0D)) //not 'OK' resend
+      goto resend_MY;
+  }
+  //-----------------------------------
+  // 5) SET NETWORK BAUDRATE
   byte bd;
   switch(BAUDRATE_XBEE){
     case 1200: bd = 0; break;
@@ -354,7 +422,7 @@ resend_BD:
   if((c[0] != 0x4F) || (c[1] != 0x4B) || (c[2] != 0x0D)) //not 'OK' resend
     goto resend_BD;
   //-----------------------------------
-  // 5) SET API MODE
+  // 6) SET API MODE
   tries = 0;
 resend_AP:
   //check number of tries
@@ -395,7 +463,7 @@ resend_AP:
   if((c[0] != 0x4F) || (c[1] != 0x4B) || (c[2] != 0x0D)) //not 'OK' resend
     goto resend_AP;
   //-----------------------------------
-  // 6) WRITE CHANGES TO XBEE
+  // 7) WRITE CHANGES TO XBEE
   tries = 0;
 resend_WR:
   if(tries > 3)
@@ -432,7 +500,7 @@ resend_WR:
   if((c[0] != 0x4F) || (c[1] != 0x4B) || (c[2] != 0x0D)) //not 'OK' resend
     goto resend_WR;
   //-----------------------------------
-  // 7.1) READ SH
+  // 8.1) READ SH
   tries = 0;
 resend_SH:
   if(tries > 3)
@@ -484,7 +552,7 @@ resend_SH:
       serial_number[i] = c[i - leading_zeros];
   }
   //-----------------------------------
-  // 7.2) READ SL
+  // 8.2) READ SL
   tries = 0;
 resend_SL:
   if(tries > 3)
@@ -536,7 +604,7 @@ resend_SL:
       serial_number[8 + i] = c[i - leading_zeros];
   }
   //-----------------------------------
-  // 8) EXIT COMMAND MODE
+  // 9) EXIT COMMAND MODE
   _xbee->write("ATCN"); //leave command mode - doesn't need to verify 'ok' back, leaves with timeout
   _xbee->write(0x0D); //carriage return
 #ifdef XBEE_API_DEBUG
@@ -555,6 +623,173 @@ resend_SL:
   //store in ByteArray
   HexStringToByteArray(serial_number, &_barray);
   _is_SerialNumber = true; //set
+  
+  return 1;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+// Configure the pins
+//    (returns 1 when succesful, 0 if not initialized, 13 if timeout of '+++', 14 if other timeout,
+//      23 if number of tries exeeded, 30 if invalid number of pins
+//    NOTE: if an error as occured, the previous transmission cannot be used, so must restart the transmission with a valid baudrate
+byte XBeeMaster::ConfigurePins(XBeePin *pins, byte num_pins){
+  if(!_initialized)
+    return 0;
+  
+  //check number of pins
+  if((num_pins == 0) || (num_pins > 9))
+    return 30;
+  
+  // Procedure:
+  //    1) enter command mode
+  //    2) configure
+  //    3) write changes (if aplicable)
+  //    4) exit command mode
+  
+  boolean wr = false; //TRUE if has to write the changes
+  
+#define BUFFER_SIZE 15
+  char c[BUFFER_SIZE]; //add more than 3 to be sure
+  byte count;
+  unsigned long start_time, current_time;
+  byte tries;
+  //-----------------------------------
+  // 1) ENTER COMMAND MODE
+  tries = 0;
+resend_EnterAT:
+  //check number of tries
+  if(tries > 3)
+    return 23;
+  //reset buffer
+  for(int i=0 ; i < BUFFER_SIZE ; i++)
+    c[i] = EMPTY_CHAR;
+  _xbee->write("+++");
+  tries++;
+  //read response - 'OK\0'
+  count = 0;
+  start_time = millis(); //get the current time
+  current_time = start_time;
+  while((count < 3) && ((current_time - start_time) < AT_TIMEOUT)){
+    if(_xbee->available()){
+      c[count] = _xbee->read();
+      count++;
+    }
+    current_time = millis();
+  }
+  //check if timeout
+  if((current_time - start_time) >= AT_TIMEOUT)
+    return 13;
+#ifdef XBEE_API_DEBUG
+  //display on computer
+  if(_use_computer){
+    _computer->println(">> +++");
+    for(int i=0 ; i < BUFFER_SIZE ; i++)
+      _computer->print(c[i]);
+    _computer->println();
+  }
+#endif
+  if((c[0] != 0x4F) || (c[1] != 0x4B) || (c[2] != 0x0D)) //not 'OK' resend
+    goto resend_EnterAT;
+  //-----------------------------------
+  // 2) CONFIGURE
+  for(int current=0 ; current < num_pins ; current++){
+    tries = 0;
+resend_Dn:
+    //check number of tries
+    if(tries > 3)
+      return 23;
+    //reset buffer
+    for(int i=0 ; i < BUFFER_SIZE ; i++)
+      c[i] = EMPTY_CHAR;
+  
+    _xbee->write('A');
+    _xbee->write('T');
+    _xbee->write(pins[current].pin[0]);
+    _xbee->write(pins[current].pin[1]);
+    _xbee->write(pins[current].value + 48); //use '0' instead of 0
+    
+    _xbee->write(0x0D); //carriage return
+    tries++; //add
+    //read response - 'OK\0'
+    count = 0;
+    start_time = millis(); //get the current time
+    current_time = start_time;
+    while((count < 3) && ((current_time - start_time) < AT_TIMEOUT)){
+      if(_xbee->available()){
+        c[count] = _xbee->read();
+        count++;
+      }
+      current_time = millis();
+    }
+    //check if timeout
+    if((current_time - start_time) >= AT_TIMEOUT)
+      return 14;
+#ifdef XBEE_API_DEBUG
+    //display on computer
+    if(_use_computer){
+      _computer->print(">> AT");
+      _computer->println(pins[current].pin);
+      for(int i=0 ; i < BUFFER_SIZE ; i++)
+        _computer->print(c[i]);
+      _computer->println();
+    }
+#endif
+    if((c[0] != 0x4F) || (c[1] != 0x4B) || (c[2] != 0x0D)) //not 'OK' resend
+      goto resend_Dn;
+    
+    wr = true; //one pin has been configured successfully
+  }
+  //-----------------------------------
+  // 3) WRITE CHANGES TO XBEE
+  if(wr){
+    tries = 0;
+resend_WR:
+    if(tries > 3)
+      return 23;
+    //reset buffer
+    for(int i=0 ; i < BUFFER_SIZE ; i++)
+      c[i] = EMPTY_CHAR;
+    _xbee->write("ATWR");
+    _xbee->write(0x0D); //carriage return
+    tries++; //add
+    //read response - 'OK\0'
+    count = 0;
+    start_time = millis(); //get the current time
+    current_time = start_time;
+    while((count < 3) && ((current_time - start_time) < AT_TIMEOUT)){
+      if(_xbee->available()){
+        c[count] = _xbee->read();
+        count++;
+      }
+      current_time = millis();
+    }
+    //check if timeout
+    if((current_time - start_time) >= AT_TIMEOUT)
+      return 14;
+#ifdef XBEE_API_DEBUG
+    //display on computer
+    if(_use_computer){
+      _computer->println(">> ATWR");
+      for(int i=0 ; i < BUFFER_SIZE ; i++)
+        _computer->print(c[i]);
+      _computer->println();
+    }
+#endif
+    if((c[0] != 0x4F) || (c[1] != 0x4B) || (c[2] != 0x0D)) //not 'OK' resend
+      goto resend_WR;
+  }
+  //-----------------------------------
+  // 4) EXIT COMMAND MODE
+  _xbee->write("ATCN"); //leave command mode - doesn't need to verify 'ok' back, leaves with timeout
+  _xbee->write(0x0D); //carriage return
+#ifdef XBEE_API_DEBUG
+  //display on computer
+  if(_use_computer)
+    _computer->println(">> ATCN");
+#endif
+#undef BUFFER_SIZE
+  //-----------------------------------
   
   return 1;
 }
@@ -703,9 +938,12 @@ void XBeeMaster::Initialize(HardwareSerial* computer){
 //-------------------------------------------------------------------------------------------------
 
 // Listen the response of the XBee Slave
-//   (returns -1 if not initialized, 1 on message listened, 10 on Timeout, 11 on buffer overflow)
+//   (returns -1 if not initialized, 1 on message listened,
+//      10 on Timeout, 11 on buffer overflow, 12 if frame delimiter not found,
+//      20 if invalid length,
+//      30 if invalid checksum)
 //     NOTE: if 'str' was created using malloc(), 'free_str' must be TRUE
-int XBeeMaster::Listen(char** str, boolean free_str){
+int XBeeMaster::Listen(char** str, boolean free_str, unsigned long timeout, unsigned long pause_time){
   //NOTE: with char* the result isn't correctly stored, but with char** is
 
   if(!_initialized)
@@ -726,34 +964,54 @@ int XBeeMaster::Listen(char** str, boolean free_str){
   _xbee->listen();
 #endif
   
-#define BUFFER_SIZE 150
-  byte buffer[BUFFER_SIZE];
-  
   //wait for response or timeout
   unsigned long start_time, current_time;
   start_time = millis();
   current_time = start_time;
-  while(!_xbee->available() && ((current_time - start_time) < LISTEN_TIMEOUT)){
+  while(!_xbee->available() && ((current_time - start_time) < timeout)){
     delay(10);
     current_time = millis();
   }
-  if((current_time - start_time) >= LISTEN_TIMEOUT)
+  if((current_time - start_time) >= timeout)
     return 10;
+  
+  //insert a pause for the serial buffer fill completely
+  if(pause_time != 0){
+    start_time = millis();
+    while(millis() <= (start_time + pause_time)){ /* wait */ }
+  }
 
+#define BUFFER_SIZE 150
+  byte buffer[BUFFER_SIZE];
+  
   //read from buffer
   int i = 0;
+  unsigned int length = 0;
   while(_xbee->available() && (i < BUFFER_SIZE)){
     buffer[i] = (byte)_xbee->read();
     i++;
     //begin storage if have found start of frame
-    if((byte)buffer[0] != FRAME_DELIMITER)
+    if(buffer[0] != FRAME_DELIMITER){
       i=0;
+    } else {
+      if(i >= 2){
+        length = (buffer[1] << 8) | buffer[2]; //MSB and LSB
+        //exit loop if has exceeded the length of the frame
+        if(i > (length + 3)) //(+3) for the frame header & (+1) for the CheckSum byte & (-1) because 0 based vector
+          break;
+      }
+    }
   }
+  //NOTE: i should be equal do (length + 4) because it is increased by 1 after reading the last byte (checksum)
   
   //parse message
-  unsigned int length = (buffer[1] << 8) | buffer[2]; //MSB and LSB
-  if(length >= BUFFER_SIZE - 3) //message too long for buffer (100 - 3 bytes for Frame, Length_H and Length_L)
+  if(length >= BUFFER_SIZE - 3){ //message too long for buffer (100 - 3 bytes for Frame, Length_H and Length_L)
     return 11;
+  } else if(i == 0){ //frame delimiter not found
+    return 12;
+  } else if(length != (i-4)){ //invalid length - see previous note
+    return 20;
+  }
   
   //use Byte Array because a NULL character (value of 0) returns an invalid string
   ByteArray temp;
@@ -763,9 +1021,15 @@ int XBeeMaster::Listen(char** str, boolean free_str){
     temp.ptr[i] = buffer[3+i];
 #undef BUFFER_SIZE
   
-  *str = ByteArrayToHexString(&temp);
+  int res = 30;
+  if(CheckSum(&temp) == buffer[length + 3]){ //(+3) for the frame header & (+1) for the CheckSum byte & (-1) because 0 based vector
+    *str = ByteArrayToHexString(&temp);
+    res = 1;
+  }
+
   FreeByteArray(&temp);
-  return true;
+  
+  return res;
 }
 
 //-------------------------------------------------------------------------------------------------

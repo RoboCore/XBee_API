@@ -3,13 +3,27 @@
 
 /*
 	RoboCore XBee API Library
-		(v1.3 - 23/05/2013)
+		(v1.3 - 31/07/2013)
 
   Library to use the XBEE in API mode
     (tested with Arduino 0022, 0023 and 1.0.1)
 
-  Released under the Beerware license
-  Written by François
+  Copyright 2013 RoboCore (François) ( http://www.RoboCore.net )
+  
+  ------------------------------------------------------------------------------
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Lesser General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  ------------------------------------------------------------------------------
   
   
   NOTE: uses the Pointer List in XBeeMaster::Listen()
@@ -57,6 +71,10 @@
 
 //--------------------------------------
 
+#define LISTEN_TIMEOUT 1000
+
+//--------------------------------------
+
 // Data bytes that need to be escaped
 #define FRAME_DELIMITER 0x7E
 #define ESCAPE 0x7D
@@ -84,6 +102,14 @@
 #define USE_64_BIT_ADDRESS 0x01
 #define USE_16_BIT_ADDRESS 0x02
 
+//--------------------------------------
+
+typedef struct{
+  char *pin;
+  byte value;
+} XBeePin;
+
+//--------------------------------------
 
 class XBeeMaster{
   
@@ -98,13 +124,14 @@ class XBeeMaster{
     boolean AssignByteArray(ByteArray* barray);
     byte ConfigureAsMaster(long baudrate);
     byte ConfigureAsSlave(long baudrate);
+    byte ConfigurePins(XBeePin *pins, byte num_pins);
     boolean CreateFrame(char* message, boolean is_hex);
     boolean CreateFrame(ByteArray* message);
     void Destroy(void);
     char* GetSerialNumber(void);
     void Initialize(void);
     void Initialize(HardwareSerial* computer);
-    int Listen(char** str, boolean free_str);
+    int Listen(char** str, boolean free_str, unsigned long timeout = LISTEN_TIMEOUT, unsigned long pause_time = 0);
     byte Restore(void);
     byte Restore(long baudrate);
     boolean Send(void);
