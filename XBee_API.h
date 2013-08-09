@@ -1,9 +1,9 @@
-#ifndef XBEE_API
-#define XBEE_API
+#ifndef XBEE_API_H
+#define XBEE_API_H
 
 /*
 	RoboCore XBee API Library
-		(v1.3 - 31/07/2013)
+		(v1.4 - 07/08/2013)
 
   Library to use the XBEE in API mode
     (tested with Arduino 0022, 0023 and 1.0.1)
@@ -71,6 +71,12 @@
 
 //--------------------------------------
 
+//user defined constants
+#define NETWORK_ID 0xA1BA  //0 to 0xFFFF
+#define NETWORK_CHANNEL 0x13 //XBee: 0x0B to 0x1A || XBee PRO: 0x0C to 0x17
+
+//--------------------------------------
+
 #define LISTEN_TIMEOUT 1000
 
 //--------------------------------------
@@ -128,15 +134,19 @@ class XBeeMaster{
     boolean CreateFrame(char* message, boolean is_hex);
     boolean CreateFrame(ByteArray* message);
     void Destroy(void);
+    byte GetNetworkChannel(void);
+    word GetNetworkID(void);
     char* GetSerialNumber(void);
     void Initialize(void);
     void Initialize(HardwareSerial* computer);
-    int Listen(char** str, boolean free_str, unsigned long timeout = LISTEN_TIMEOUT, unsigned long pause_time = 0);
+    int Listen(char** str, boolean free_str, unsigned long timeout = LISTEN_TIMEOUT, unsigned long pause_time = 20);
     byte Restore(void);
     byte Restore(long baudrate);
     boolean Send(void);
     boolean SetComputer(HardwareSerial* computer);
-    void UnsetComputer(void);
+    boolean SetNetworkChannel(byte channel = NETWORK_CHANNEL);
+    boolean SetNetworkID(word id = NETWORK_ID);
+    boolean UnsetComputer(void);
     
 static long GetPCbaudrate(void);
 static long GetXBeebaudrate(void);
@@ -145,6 +155,8 @@ static long GetXBeebaudrate(void);
     boolean _initialized;
     boolean _is_SerialNumber;
     boolean _use_computer;
+    byte _network_channel;
+    word _network_id;
     ByteArray _barray;
     HardwareSerial* _computer; // (Rx, Tx) = (0,1) ~ 9600
 #ifdef USE_SOFTWARE_SERIAL
@@ -152,6 +164,7 @@ static long GetXBeebaudrate(void);
 #else
     HardwareSerial* _xbee; // (Rx, Tx) = (19,18) ~ 19200 (Serial 1 on MEGA)
 #endif
+
     byte CheckSum(ByteArray* barray_ptr);
     byte ConfigureXBee(long baudrate, boolean master);
 };
@@ -163,10 +176,10 @@ class XBeeMessages{
   
   public:
     static boolean CreateRemoteATRequest(ByteArray* barray_ptr, char* destination_address_64bit, char* destination_address_16bit, byte transmission_type, char* command_name, char* command_values);
-    static boolean ResponseOK(byte sent_message_type, char* response);
-    static boolean ResponseOK(byte sent_message_type, ByteArray* barray);
+    static byte ResponseStatus(byte sent_message_type, char* response);
+    static byte ResponseStatus(byte sent_message_type, ByteArray* barray);
 
 };
 
 
-#endif
+#endif // XBEE_API_H

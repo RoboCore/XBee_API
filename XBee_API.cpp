@@ -1,20 +1,7 @@
-/*
-  ***************************************************************************************************************************************************************
-  ROBOCORE ONLY *************************************************************************************************************************************************
-
-  Versão RELEASE:
-  (procurar por RELEASE para identificar o que remover/alterar)
-    # alterar 
-       #define NETWORK_ID 0xA1BA  //0 to 0xFFFF
-       #define NETWORK_CHANNEL 0x13 //XBee: 0x0B to 0x1A || XBee PRO: 0x0C to 0x17
-  
-  ***************************************************************************************************************************************************************
-  ***************************************************************************************************************************************************************
-*/
 
 /*
 	RoboCore XBee API Library
-		(v1.3 - 31/07/2013)
+		(v1.4 - 07/08/2013)
 
   Library to use the XBEE in API mode
     (tested with Arduino 0022, 0023 and 1.0.1)
@@ -77,9 +64,7 @@
 
 //user defined constants
 #define BAUDRATE_PC 9600
-#define BAUDRATE_XBEE 19200 //1200 (0), 2400 (1), 4800 (2), 9600 (3), 19200 (4), 38400 (5), 57600 (6), 115200 (7) 
-#define NETWORK_ID 0x3300  //0 to 0xFFFF
-#define NETWORK_CHANNEL 0x10 //XBee: 0x0B to 0x1A || XBee PRO: 0x0C to 0x17
+#define BAUDRATE_XBEE 19200 //1200 (0), 2400 (1), 4800 (2), 9600 (3), 19200 (4), 38400 (5), 57600 (6), 115200 (7)
 
 //other constants
 #define AT_TIMEOUT 11000
@@ -97,6 +82,8 @@ XBeeMaster::XBeeMaster(void){
   _initialized = false; //set to false to call Initialize method
   _use_computer = false;
   _xbee = NULL; // BLOCKS the use of the object in Initialize()
+  _network_id = NETWORK_ID;
+  _network_channel = NETWORK_CHANNEL;
 }
 
 #ifdef USE_SOFTWARE_SERIAL
@@ -105,6 +92,8 @@ XBeeMaster::XBeeMaster(SoftwareSerial* xbee){
   _initialized = false; //set to false to call Initialize method
   _use_computer = false;
   _xbee = xbee;
+  _network_id = NETWORK_ID;
+  _network_channel = NETWORK_CHANNEL;
 }
 #else
 // Constructor for HardwareSerial
@@ -112,6 +101,8 @@ XBeeMaster::XBeeMaster(HardwareSerial* xbee){
   _initialized = false; //set to false to call Initialize method
   _use_computer = false;
   _xbee = xbee;
+  _network_id = NETWORK_ID;
+  _network_channel = NETWORK_CHANNEL;
 }
 #endif
 
@@ -254,10 +245,10 @@ resend_ID:
   for(int i=0 ; i < BUFFER_SIZE ; i++)
     c[i] = EMPTY_CHAR;
   _xbee->write("ATID");
-  _xbee->write(ASCIIByteToHexByte((NETWORK_ID & 0xF000) >> 12));
-  _xbee->write(ASCIIByteToHexByte((NETWORK_ID & 0x0F00) >> 8));
-  _xbee->write(ASCIIByteToHexByte((NETWORK_ID & 0x00F0) >> 4));
-  _xbee->write(ASCIIByteToHexByte(NETWORK_ID & 0x000F));
+  _xbee->write(ASCIIByteToHexByte((_network_id & 0xF000) >> 12));
+  _xbee->write(ASCIIByteToHexByte((_network_id & 0x0F00) >> 8));
+  _xbee->write(ASCIIByteToHexByte((_network_id & 0x00F0) >> 4));
+  _xbee->write(ASCIIByteToHexByte(_network_id & 0x000F));
   _xbee->write(0x0D); //carriage return
   tries++; //add
   //read response - 'OK\0'
@@ -296,8 +287,8 @@ resend_CH:
   for(int i=0 ; i < BUFFER_SIZE ; i++)
     c[i] = EMPTY_CHAR;
   _xbee->write("ATCH");
-  _xbee->write(ASCIIByteToHexByte((NETWORK_CHANNEL & 0x00F0) >> 4));
-  _xbee->write(ASCIIByteToHexByte(NETWORK_CHANNEL & 0x000F));
+  _xbee->write(ASCIIByteToHexByte((_network_channel & 0x00F0) >> 4));
+  _xbee->write(ASCIIByteToHexByte(_network_channel & 0x000F));
   _xbee->write(0x0D); //carriage return
   tries++; //add
   //read response - 'OK\0'
@@ -879,6 +870,29 @@ void XBeeMaster::Destroy(void){
 
 //-------------------------------------------------------------------------------------------------
 
+// Get the network Channel
+//  (returns 0 if not initialized)
+byte XBeeMaster::GetNetworkChannel(void){
+  if(!_initialized)
+    return 0;
+  
+  return _network_channel;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+// Get the network ID
+//  (returns 0 if not initialized)
+word XBeeMaster::GetNetworkID(void){
+  if(!_initialized)
+    return 0;
+  
+  return _network_id;
+}
+
+
+//-------------------------------------------------------------------------------------------------
+
 // Get the defined PC baudrate
 long XBeeMaster::GetPCbaudrate(void){
   return BAUDRATE_PC;
@@ -965,15 +979,11 @@ int XBeeMaster::Listen(char** str, boolean free_str, unsigned long timeout, unsi
 #endif
   
   //wait for response or timeout
-  unsigned long start_time, current_time;
+  unsigned long start_time;
   start_time = millis();
-  current_time = start_time;
-  while(!_xbee->available() && ((current_time - start_time) < timeout)){
-    delay(10);
-    current_time = millis();
-  }
-  if((current_time - start_time) >= timeout)
-    return 10;
+  while(!_xbee->available() && (millis() < (start_time + timeout))){ /* wait */ }
+  if(millis() >= (start_time + timeout))
+    return 10; //should not enter here, because the XBee has its own timeout (API frame 0x97 + status 04)
   
   //insert a pause for the serial buffer fill completely
   if(pause_time != 0){
@@ -1236,14 +1246,45 @@ boolean XBeeMaster::SetComputer(HardwareSerial* computer){
 
 //-------------------------------------------------------------------------------------------------
 
-// Unset the computer serial
-void XBeeMaster::UnsetComputer(void){
+// Set the XBee network Channel variable
+//  (returns TRUE if changed successfully)
+//    NOTE: range is defined for both XBee and XBee PRO
+boolean XBeeMaster::SetNetworkChannel(byte channel){
+  boolean res = false;
+  if(_initialized){
+    if((channel >= 0x0C) && (channel <= 0x17)){ //XBee: 0x0B to 0x1A || XBee PRO: 0x0C to 0x17
+      _network_channel = channel;
+      res = true;
+    }
+  }
+  
+  return res;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+// Set the XBee network ID variable
+//  (returns FALSE if not initialized)
+boolean XBeeMaster::SetNetworkID(word id){
   if(!_initialized)
-    return;
+    return false;
+  
+  _network_id = id;
+  return true;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+// Unset the computer serial
+//  (returns FALSE if not initialized)
+boolean XBeeMaster::UnsetComputer(void){
+  if(!_initialized)
+    return false;
   
   _computer->end(); //end communication
   _computer = NULL;
   _use_computer = false; //reset
+  return true;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1333,13 +1374,14 @@ boolean XBeeMessages::CreateRemoteATRequest(ByteArray* barray_ptr, char* destina
 // Implemented (1):
 //    - API_REMOTE_AR_COMMAND_REQUEST (doesn't validade response data)
 
-// Validates the response of a given message
-boolean XBeeMessages::ResponseOK(byte sent_message_type, char* response){
-  boolean res = false;
+// Validate the response of a given message
+//  (returns 1 if OK, 10 if error, 40 if no response)
+byte XBeeMessages::ResponseStatus(byte sent_message_type, char* response){
+  byte res = 0;
   char* temp = "##";
   
   switch(sent_message_type){
-    case API_REMOTE_AT_COMMAND_REQUEST:
+    case API_REMOTE_AT_COMMAND_REQUEST: {
       //check if correct response identifier
       temp[0] = response[0];
       temp[1] = response[1];
@@ -1348,12 +1390,19 @@ boolean XBeeMessages::ResponseOK(byte sent_message_type, char* response){
       //check response
       temp[0] = response[28];
       temp[1] = response[29];
-      if(HexCharToByte(temp) == 0)
-        res = true;
+      //check the status
+      byte status = HexCharToByte(temp);
+      switch(status){
+        case 0: res = 1;  break;
+        case 1: res = 10; break;
+        case 4: res = 40; break;
+      }
       break;
+    }
+    
     default:
 #ifdef XBEE_API_DEBUG
-      Serial.println("ERROR in ResponseOK: type not yet implemented!");
+      Serial.println("ERROR in ResponseStatus: type not yet implemented!");
 #endif
       break; //must have for when XBEE_API_DEBUG ISN'T defined
   }
@@ -1362,9 +1411,10 @@ boolean XBeeMessages::ResponseOK(byte sent_message_type, char* response){
 }
 
 
-// Validates the response of a given message
-boolean XBeeMessages::ResponseOK(byte sent_message_type, ByteArray* barray){
-  boolean res = false;
+// Validate the response of a given message
+//  (returns 1 if OK, 10 if error, 40 if no response)
+byte XBeeMessages::ResponseStatus(byte sent_message_type, ByteArray* barray){
+  byte res = 0;
   
   switch(sent_message_type){
     case API_REMOTE_AT_COMMAND_REQUEST:
@@ -1375,12 +1425,16 @@ boolean XBeeMessages::ResponseOK(byte sent_message_type, ByteArray* barray){
       if(barray->ptr[0] != API_REMOTE_COMMAND_RESPONSE)
         break;
       //check response
-      if(barray->ptr[14] == 0)
-        res = true;
+      switch(barray->ptr[14]){
+        case 0: res = 1;  break;
+        case 1: res = 10; break;
+        case 4: res = 40; break;
+      }
       break;
+    
     default:
 #ifdef XBEE_API_DEBUG
-      Serial.println("ERROR in ResponseOK: type not yet implemented!");
+      Serial.println("ERROR in ResponseStatus: type not yet implemented!");
 #endif
       break; //must have for when XBEE_API_DEBUG ISN'T defined
   }

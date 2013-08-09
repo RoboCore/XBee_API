@@ -10,6 +10,8 @@ ConfigureAsSlave	KEYWORD2
 ConfigurePins	KEYWORD2
 CreateFrame	KEYWORD2
 Destroy	KEYWORD2
+GetNetworkChannel	KEYWORD2
+GetNetworkID	KEYWORD2
 GetPCbaudrate	KEYWORD2
 GetXBeebaudrate	KEYWORD2
 GetSerialNumber	KEYWORD2
@@ -18,6 +20,8 @@ Listen	KEYWORD2
 Restore	KEYWORD2
 Send	KEYWORD2
 SetComputer	KEYWORD2
+SetNetworkChannel	KEYWORD2
+SetNetworkID	KEYWORD2
 UnsetComputer	KEYWORD2
 
 
@@ -27,7 +31,7 @@ UnsetComputer	KEYWORD2
 XBeeMessages	KEYWORD1
 
 CreateRemoteATRequest	KEYWORD2
-ResponseOK	KEYWORD2
+ResponseStatus	KEYWORD2
 
 
 

@@ -1,6 +1,6 @@
 
 	RoboCore XBee API Library
-		(v1.3 - 31/07/2013)
+		(v1.4 - 07/08/2013)
 
   Library to use the XBEE in API mode
     (tested with Arduino 0022, 0023 and 1.0.1)

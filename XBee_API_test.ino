@@ -47,7 +47,7 @@ void setup(){
 
 char c;
 char* str;
-boolean b;
+byte b;
 
 void loop(){
   
@@ -108,7 +108,7 @@ void loop(){
     
     if(c == 'o'){ // acende
       Serial.println("Messages...");
-      b = XBeeMessages::CreateRemoteATRequest(&barray, "0013A200409FAA21","0000",USE_64_BIT_ADDRESS, D1, "05"); // 0013A20040791ABB
+      b = XBeeMessages::CreateRemoteATRequest(&barray, "0013A200409FAA1A","0000",USE_64_BIT_ADDRESS, D1, "05"); // 0013A20040791ABB
 //      DisplayByteArray(&Serial, &barray, true);
       xbee.CreateFrame(&barray);
 //      DisplayByteArray(Serial, &xbee._barray, true);
@@ -119,19 +119,21 @@ void loop(){
       Serial.println("Sent!");
       
       Serial.println(xbee.Listen(&str, true));
-//      b = XBeeMessages::ResponseOK(API_REMOTE_AT_COMMAND_REQUEST, str);
+//      b = XBeeMessages::ResponseStatus(API_REMOTE_AT_COMMAND_REQUEST, str);
       HexStringToByteArray(str, &barray);
-      b = XBeeMessages::ResponseOK(API_REMOTE_AT_COMMAND_REQUEST, &barray);
-      if(b !=  true)
-        Serial.println("ERROR");
-      else
+      b = XBeeMessages::ResponseStatus(API_REMOTE_AT_COMMAND_REQUEST, &barray);
+      if(b !=  1){
+        Serial.print("ERROR ");
+        Serial.println(b);
+      } else {
         Serial.println("OK");
+      }
       Serial.println("--- end ---");
       FreeByteArray(&barray);
       
     } else if(c == 'f'){ // apaga
       Serial.println("Messages...");
-      b = XBeeMessages::CreateRemoteATRequest(&barray, "0013A200409FAA21","0000",USE_64_BIT_ADDRESS, D1, "04"); // 0013A20040791ABB
+      b = XBeeMessages::CreateRemoteATRequest(&barray, "0013A200409FAA1A","0000",USE_64_BIT_ADDRESS, D1, "04"); // 0013A20040791ABB
 //      DisplayByteArray(&Serial, &barray, true);
       xbee.CreateFrame(&barray);
 //      DisplayByteArray(Serial, &xbee._barray, true);
@@ -142,13 +144,15 @@ void loop(){
       Serial.println("Sent!");
       
       Serial.println(xbee.Listen(&str, true));
-//      b = XBeeMessages::ResponseOK(API_REMOTE_AT_COMMAND_REQUEST, str);
-      HexStringToByteArray(str, &barray);
-      b = XBeeMessages::ResponseOK(API_REMOTE_AT_COMMAND_REQUEST, &barray);
-      if(b !=  true)
-        Serial.println("ERROR");
-      else
+      b = XBeeMessages::ResponseStatus(API_REMOTE_AT_COMMAND_REQUEST, str);
+//      HexStringToByteArray(str, &barray);
+//      b = XBeeMessages::ResponseStatus(API_REMOTE_AT_COMMAND_REQUEST, &barray);
+      if(b !=  1){
+        Serial.print("ERROR ");
+        Serial.println(b);
+      } else {
         Serial.println("OK");
+      }
       Serial.println("--- end ---");
       FreeByteArray(&barray);
     } else if(c == 'm'){ //configura como mestre
@@ -157,6 +161,9 @@ void loop(){
       Serial.println(xbee.ConfigureAsSlave(19200));
     } else if(c == 'p'){ //print PointerList
       PointerList::DisplayList(&Serial);
+    } else if(c == 'n'){
+      xbee.SetNetworkID(0x3300);
+      xbee.SetNetworkChannel(0x10);
     }
   }
   

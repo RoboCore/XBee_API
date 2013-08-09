@@ -1,5 +1,5 @@
-#ifndef XBEE_API_AT_COMMANDS
-#define XBEE_API_AT_COMMANDS
+#ifndef XBEE_API_AT_COMMANDS_H
+#define XBEE_API_AT_COMMANDS_H
 
 /*
 	RoboCore XBee API Library - AT Commands
@@ -122,4 +122,4 @@
 #define XBEE_PIN_DO_HIGH  5
 
 
-#endif
+#endif // XBEE_API_AT_COMMANDS_H
